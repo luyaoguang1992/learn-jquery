@@ -23,19 +23,19 @@ var callback = function(options) {
         memoryArg && fire(memoryArg)
       }
     },
-    fireWith:function(context,args) {
+    fireWith:function(context,args = []) {//fireWith允许传入指定的对象调用
       isFire = true
       memoryArg = args
       length = list.length
       for(;index < length; index++) {
         //声明了stopOnfalse参数 则处理函数返回false，则break
-        if(options.stopOnFalse && list[index].apply(context,[...args]) === false) break;
+        if(list[index].apply(context,args) === false && options.stopOnFalse) break;
       }
     },
     fire:function() {
       //指定once参数，则只能fire调用一次
       if(!options.once || !isFire) {
-        self.fireWith(this,arguments)
+        self.fireWith(this,[...arguments]) 
       }
     }
   }
@@ -51,9 +51,9 @@ function createOptions(options) {
 }
 var foo = callback()
 foo.add(function() {
-  console.log(123)
+  console.log(this.name)
 })
 let obj = {
-  name:111
+  name:123
 }
-foo.fire.call();
+foo.fireWith(obj);
