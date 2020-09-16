@@ -2,28 +2,34 @@
  * 1、once fire只能执行一次
  * 2、memory fire执行过一次后 下次add后立即执行
  * 3、stopOnfalse 执行某个处理函数返回false，则终止后续处理函数的执行
- * 
+ * 4、unique 队列内不能有两个重复的callback
 */
+import './utils'
 const optionsCache = {}
 var callback = function(options) {
   options = typeof options === 'string' ? (optionsCache[options] || createOptions(options)) : {}
   const list = []
-  let length,isFire,memoryArg,start,startIndex
-  let index = startIndex || 0
+  let length,isFire,memoryArg,index,start,startIndex;
+  startIndex = 0
   let self =  {
+    has:function(fn) {
+      return fn ? list.indexOf(fn) > -1 : false
+    },
     add:function() {
       start = list.length; //在push之前
       Array.prototype.slice.call(arguments).forEach(function(fn) {
-        if(toString.call(fn) === '[object Function]') {
+        if(isFunction(fn) && (!options.unique || !self.has(fn))) {
           list.push(fn)
         }
       })
       if(memoryArg) {
         startIndex = start
-        memoryArg && fire(memoryArg)
+        memoryArg && self.fire(memoryArg)
       }
     },
     fireWith:function(context,args = []) {//fireWith允许传入指定的对象调用
+      index = startIndex || 0
+      startIndex = 0
       isFire = true
       memoryArg = args
       length = list.length
@@ -49,11 +55,12 @@ function createOptions(options) {
   })
   return object
 }
-var foo = callback()
-foo.add(function() {
-  console.log(this.name)
+var callList = callback('memory')
+callList.add(function() {
+  console.log(1)
 })
-let obj = {
-  name:123
-}
-foo.fireWith(obj);
+callList.fire()
+callList.add(function() {
+  console.log(2)
+})
+callList.fire()

@@ -17,12 +17,6 @@
 const optionsCache = {}
 
 
-function isPlainObject(obj) {
-  return toString.call(obj) === '[object Object]'
-}
-function isArray(obj) {
-  return toString.call(obj) === '[object Array]'
-}
 
 function extend() {
   let target = arguments[0] || {} //操作的目标对象
@@ -71,7 +65,7 @@ var callback = function(options) {
     add:function() {
       start = list.length; //在push之前
       Array.prototype.slice.call(arguments).forEach(function(fn) {
-        if(toString.call(fn) === '[object Function]') {
+        if(isFunction(fn)) {
           list.push(fn)
         }
       })
@@ -120,7 +114,16 @@ function Deferred(func) {
       return state
     },
     then:function() {
-
+      let funcs = [].slice.call(arguments)
+      return Deferred(function(newDeferred) {
+        tuples.forEach(function(tuple,i) {
+          let action = tuple[0]
+          let fn = isFunction(funcs[i]) && func[i]
+          deferred[tuple[1]](function() {//done | fail | progress
+            fn && fn.apply(this,arguments) //此处的arguments为回调时传入的参数
+          })
+        })
+      })
     },
     promise:function(obj) {
       return obj != null ? extend(obj,promise) : promise;
@@ -145,6 +148,9 @@ function Deferred(func) {
     deferred[tuple[0] + 'With'] = list.fireWith
   }) 
   promise.promise(deferred)
+  if(isFunction(func)) {
+    func.call(deferred,deferred)
+  }
   return deferred
 }
 
